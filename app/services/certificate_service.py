@@ -14,7 +14,10 @@ def generate_certificate(data: dict):
 
     # Idempotent
     if pdf_path.exists():
-        return {"pdf_path": str(pdf_path)}
+        return {
+            "pdf_path": str(pdf_path),
+            "download_url": f"/storage/output/pdf/{cert_no}.pdf"
+        }
 
     generate_qr(data["verify_url"], qr_path)
 
@@ -27,4 +30,7 @@ def generate_certificate(data: dict):
 
     docx_to_pdf(docx_path, pdf_path)
 
-    return {"pdf_path": str(pdf_path)}
+    return {
+        "pdf_path": str(pdf_path),
+        "download_url": f"/storage/output/pdf/{cert_no}.pdf"
+    }
