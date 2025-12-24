@@ -1,12 +1,8 @@
-# app/config.py
-from pathlib import Path
+from pydantic_settings import BaseSettings
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+class Settings(BaseSettings):
+    API_KEY: str = "dev-secret"
+    STORAGE_PATH: str = "app/storage"
+    TEMPLATE_PATH: str = "app/templates/certificate.docx"
 
-TEMPLATE_PATH = BASE_DIR / "app/templates/certificate.docx"
-
-DOCX_OUTPUT = BASE_DIR / "app/storage/output/docx"
-PDF_OUTPUT  = BASE_DIR / "app/storage/output/pdf"
-QR_OUTPUT   = BASE_DIR / "app/storage/qr"
-
-VERIFY_URL = "https://sertifikat.devlokal.id/verify"
+settings = Settings()

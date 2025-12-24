@@ -132,4 +132,9 @@ Thumbs.db
 
 # Project Specific (Output Files)
 # Mengabaikan folder output PDF agar repository tidak bengkak
-app/storage/
+app/storage/output/docx/*
+!app/storage/output/docx/.gitkeep
+app/storage/output/pdf/*
+!app/storage/output/pdf/.gitkeep
+app/storage/qr/*
+!app/storage/qr/.gitkeep
