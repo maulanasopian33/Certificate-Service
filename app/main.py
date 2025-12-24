@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, Request
 from app.config import settings
 from fastapi import Header, HTTPException
 from fastapi.staticfiles import StaticFiles
-from app.core.worker import job_queue, start_worker
+from app.core.worker import job_queue, start_worker, stop_event
 from typing import Union, List, Dict, Optional
 from pydantic import BaseModel
 from fastapi.exceptions import RequestValidationError
@@ -73,6 +73,8 @@ def startup_event():
 
 @app.on_event("shutdown")
 def shutdown_event():
+    # Memberi sinyal ke worker untuk berhenti setelah tugas saat ini selesai
+    stop_event.set()
     scheduler.shutdown()
 
 @app.post("/generate", dependencies=[Depends(verify_api_key)])

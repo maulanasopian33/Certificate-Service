@@ -10,6 +10,9 @@ from app.services.certificate_service import generate_certificate
 # Inisialisasi Queue
 job_queue = queue.Queue()
 
+# Event untuk menghentikan worker secara graceful
+stop_event = threading.Event()
+
 logger = logging.getLogger("uvicorn")
 
 def log_memory_usage(stage: str):
@@ -26,10 +29,13 @@ def worker():
     Fungsi ini berjalan di thread terpisah.
     Mengambil tugas dari queue dan memprosesnya satu per satu (Serial).
     """
-    while True:
-        # Ambil item dari queue (blocking jika kosong)
-        task = job_queue.get()
-        
+    while not stop_event.is_set():
+        try:
+            # Ambil item dari queue dengan timeout 1 detik agar bisa cek stop_event secara berkala
+            task = job_queue.get(timeout=1.0)
+        except queue.Empty:
+            continue
+
         try:
             data = task.get("data")
             callback_url = task.get("callback_url")
