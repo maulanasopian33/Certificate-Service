@@ -2,12 +2,24 @@ import threading
 import queue
 import requests
 import logging
+import psutil
+import os
+import gc
 from app.services.certificate_service import generate_certificate
 
 # Inisialisasi Queue
 job_queue = queue.Queue()
 
 logger = logging.getLogger("uvicorn")
+
+def log_memory_usage(stage: str):
+    """
+    Mencatat penggunaan RAM saat ini oleh proses Python.
+    """
+    process = psutil.Process(os.getpid())
+    # RSS (Resident Set Size) adalah memori fisik yang digunakan
+    mem_mb = process.memory_info().rss / 1024 / 1024
+    logger.info(f"[RAM-ANALYSIS] {stage}: {mem_mb:.2f} MB")
 
 def worker():
     """
@@ -24,8 +36,14 @@ def worker():
             
             logger.info(f"Processing certificate: {data.get('certificate_number')}")
             
+            log_memory_usage("Before Generate")
             # Proses Generate (Berat/Lama)
             result = generate_certificate(data)
+            log_memory_usage("After Generate")
+            
+            # Paksa Garbage Collection untuk membersihkan objek yang tidak terpakai
+            gc.collect()
+            log_memory_usage("After GC")
             
             # Kirim Callback jika url disediakan
             if callback_url:
@@ -41,7 +59,8 @@ def worker():
                     logger.error(f"Failed to send callback: {e}")
                     
         except Exception as e:
-            logger.error(f"Error processing task: {e}")
+            # Log error dengan traceback singkat atau pesan jelas untuk production monitoring
+            logger.critical(f"[WORKER ERROR] Failed to generate certificate. Error: {str(e)} | Data: {task.get('data')}")
         finally:
             # Menandakan tugas selesai di queue
             job_queue.task_done()

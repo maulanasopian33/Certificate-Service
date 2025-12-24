@@ -2,11 +2,15 @@ from pathlib import Path
 from app.core.qr_engine import generate_qr
 from app.core.docx_engine import fill_docx
 from app.core.pdf_engine import docx_to_pdf
+import re
 
 BASE = Path("app/storage")
 
 def generate_certificate(data: dict):
-    cert_no = data["certificate_number"]
+    # SECURITY: Sanitasi input untuk mencegah Path Traversal
+    # Hanya mengizinkan huruf, angka, strip, underscore, dan spasi
+    raw_cert_no = data["certificate_number"]
+    cert_no = re.sub(r'[^\w\-. ]', '', raw_cert_no).strip()
 
     pdf_path = BASE / "output/pdf" / f"{cert_no}.pdf"
     docx_path = BASE / "output/docx" / f"{cert_no}.docx"
