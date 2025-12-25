@@ -138,3 +138,9 @@ app/storage/output/pdf/*
 !app/storage/output/pdf/.gitkeep
 app/storage/qr/*
 !app/storage/qr/.gitkeep
+
+
+# LibreOffice runtime
+app/storage/.libreoffice-profile*
+app/storage/.cache/
+app/storage/.config/

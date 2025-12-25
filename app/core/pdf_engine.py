@@ -6,6 +6,12 @@ from pathlib import Path
 
 logger = logging.getLogger("uvicorn")
 
+# Runtime dir yang FIX (tidak bergantung pada pdf_path)
+STORAGE_DIR = Path("/opt/Certificate-Service/app/storage").resolve()
+LO_PROFILE_DIR = (STORAGE_DIR / ".libreoffice-profile").resolve()
+XDG_CACHE_DIR = (STORAGE_DIR / ".cache").resolve()
+XDG_CONFIG_DIR = (STORAGE_DIR / ".config").resolve()
+
 # ---- LOCK (Linux only) ----
 if sys.platform != "win32":
     import fcntl
@@ -27,7 +33,6 @@ if sys.platform != "win32":
                 self.fp.close()
                 self.fp = None
 else:
-    # dummy context manager for windows
     from contextlib import nullcontext as LibreOfficeLock
 
 
@@ -40,18 +45,15 @@ def docx_to_pdf(docx_path, pdf_path):
         convert(str(docx_path), str(pdf_path))
         return
 
-    # === Linux: LibreOffice headless ===
-    base_dir = pdf_path.parent.parent if pdf_path.parent.name else pdf_path.parent
-    lo_profile_dir = (base_dir / ".libreoffice-profile").resolve()
-    xdg_cache_dir = (base_dir / ".cache").resolve()
-    xdg_config_dir = (base_dir / ".config").resolve()
-
-    lo_profile_dir.mkdir(parents=True, exist_ok=True)
-    xdg_cache_dir.mkdir(parents=True, exist_ok=True)
-    xdg_config_dir.mkdir(parents=True, exist_ok=True)
+    # Pastikan runtime dir & output dir ada
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    LO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    XDG_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    XDG_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
 
-    user_install = "file://" + lo_profile_dir.as_posix()
+    # LibreOffice butuh format file:// untuk UserInstallation
+    user_install = "file://" + LO_PROFILE_DIR.as_posix()
 
     cmd = [
         "libreoffice",
@@ -68,10 +70,11 @@ def docx_to_pdf(docx_path, pdf_path):
         str(docx_path),
     ]
 
+    # Set env supaya LO/dconf tidak nulis ke lokasi lain (mis. /var/www)
     env = os.environ.copy()
-    env["HOME"] = str(base_dir)
-    env["XDG_CACHE_HOME"] = str(xdg_cache_dir)
-    env["XDG_CONFIG_HOME"] = str(xdg_config_dir)
+    env["HOME"] = str(STORAGE_DIR)
+    env["XDG_CACHE_HOME"] = str(XDG_CACHE_DIR)
+    env["XDG_CONFIG_HOME"] = str(XDG_CONFIG_DIR)
 
     # 🔒 KUNCI: hanya 1 konversi LibreOffice pada satu waktu
     with LibreOfficeLock("/tmp/libreoffice_convert.lock"):
@@ -92,6 +95,7 @@ def docx_to_pdf(docx_path, pdf_path):
                     f"stderr={result.stderr.decode(errors='ignore')}"
                 )
 
+            # Rename kalau nama target berbeda
             if created_pdf != pdf_path:
                 if pdf_path.exists():
                     pdf_path.unlink()
